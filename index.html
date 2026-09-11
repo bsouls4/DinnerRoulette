@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Dinner Roulette</title>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#10b981" />
+  
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 90px;
+    }
+
+    header {
+      background: #ffffff;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 16px;
+      flex: 1;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Filters */
+    .filter-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .filter-scroll::-webkit-scrollbar { display: none; }
+
+    .chip {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .chip.active {
+      background: var(--text);
+      color: #ffffff;
+      border-color: var(--text);
+    }
+
+    /* Winner Card */
+    .wheel-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+      transition: transform 0.2s;
+    }
+
+    .tag-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      background: #ecfdf5;
+      color: var(--primary-dark);
+    }
+
+    .wheel-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+
+    .wheel-meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    /* Primary Action Buttons */
+    .btn-main {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-main:active { transform: scale(0.98); }
+
+    .btn-secondary {
+      width: 100%;
+      background: #f1f5f9;
+      color: var(--text);
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    /* Recipe Library List */
+    .recipe-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .recipe-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .recipe-item h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .recipe-item p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .icon-btn:hover { background: #f1f5f9; }
+
+    /* Modal / Details Sheet */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-sheet {
+      background: #ffffff;
+      width: 100%;
+      max-height: 90vh;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .sheet-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sheet-body {
+      padding: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    .sheet-body h4 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin: 18px 0 10px;
+    }
+    .sheet-body h4:first-child { margin-top: 0; }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .check-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      margin-top: 3px;
+    }
+
+    .instruction-step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .step-num {
+      background: #e2e8f0;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.8rem;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .form-group textarea {
+      height: 110px;
+      resize: vertical;
+    }
+
+    /* Bottom Navigation Bar */
+    nav.bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 33.3%;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn span.icon { font-size: 1.3rem; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🍽️ Dinner Roulette</h1>
+    <button class="chip" onclick="openAddModal()">+ Add</button>
+  </header>
+
+  <!-- TAB 1: RANDOMIZER -->
+  <main id="tab-spin" class="tab-content active">
+    <div class="filter-scroll">
+      <button class="chip active" onclick="setFilter('all', this)">All Recipes</button>
+      <button class="chip" onclick="setFilter('Slow Cooker', this)">Slow Cooker</button>
+      <button class="chip" onclick="setFilter('Skillet', this)">Fast Skillet</button>
+      <button class="chip" onclick="setFilter('Sheet Pan', this)">Sheet Pan</button>
+      <button class="chip" onclick="setFilter('Bake', this)">Bakes</button>
+    </div>
+
+    <div class="wheel-card" id="winner-card">
+      <span class="tag-badge" id="card-tag">Ready to roll</span>
+      <h2 class="wheel-title" id="card-title">What's for Dinner?</h2>
+      <p class="wheel-meta" id="card-meta">Tap below to randomize</p>
+
+      <button class="btn-main" onclick="spinDinner()">🎲 Spin for Dinner</button>
+      <button class="btn-secondary" id="btn-view-recipe" style="display:none;" onclick="viewCurrentWinner()">📖 View Ingredients & Steps</button>
+    </div>
+  </main>
+
+  <!-- TAB 2: ALL RECIPES LIBRARY -->
+  <main id="tab-library" class="tab-content">
+    <div class="recipe-list" id="recipe-list-container">
+      <!-- Injected via JS -->
+    </div>
+  </main>
+
+  <!-- BOTTOM NAVIGATION -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('tab-spin', this)">
+      <span class="icon">🎲</span>
+      <span>Pick Tonight</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('tab-library', this)">
+      <span class="icon">📚</span>
+      <span>All Recipes</span>
+    </button>
+  </nav>
+
+  <!-- RECIPE DETAIL MODAL -->
+  <div class="modal-overlay" id="detail-modal" onclick="closeOnOutside(event, 'detail-modal')">
+    <div class="modal-sheet">
+      <div class="sheet-header">
+        <div>
+          <span class="tag-badge" id="modal-tag">Tag</span>
+          <h3 id="modal-title" style="font-size:1.25rem; font-weight:800;">Recipe Title</h3>
+          <p id="modal-time" style="font-size:0.85rem; color:var(--text-muted);"></p>
+        </div>
+        <button class="icon-btn" onclick="closeModal('detail-modal')">✕</button>
+      </div>
+      <div class="sheet-body" id="modal-content">
+        <!-- Ingredients and Instructions injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT RECIPE MODAL -->
+  <div class="modal-overlay" id="edit-modal" onclick="closeOnOutside(event, 'edit-modal')">
+    <div class="modal-sheet">
+      <div class="sheet-header">
+        <h3 id="form-header-title">Add Recipe</h3>
+        <button class="icon-btn" onclick="closeModal('edit-modal')">✕</button>
+      </div>
+      <div class="sheet-body">
+        <form id="recipe-form" onsubmit="saveRecipeForm(event)">
+          <input type="hidden" id="edit-id" />
+          <div class="form-group">
+            <label>Recipe Title</label>
+            <input type="text" id="form-title" required placeholder="e.g. Lemon Chicken" />
+          </div>
+          <div class="form-group">
+            <label>Method / Tag</label>
+            <select id="form-category">
+              <option value="Slow Cooker">Slow Cooker</option>
+              <option value="Skillet">Skillet</option>
+              <option value="Sheet Pan">Sheet Pan</option>
+              <option value="Bake">Bake</option>
+              <option value="Salad">Salad</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Cook / Prep Time</label>
+            <input type="text" id="form-time" placeholder="e.g. 20 mins or 6 hrs on LOW" />
+          </div>
+          <div class="form-group">
+            <label>Ingredients (One item per line)</label>
+            <textarea id="form-ingredients" placeholder="1 lb chicken breast&#10;1 can black beans&#10;1 tsp cumin"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Instructions (One step per line)</label>
+            <textarea id="form-instructions" placeholder="Preheat oven to 400°F.&#10;Season and brown the meat.&#10;Bake for 15 minutes."></textarea>
+          </div>
+          <button type="submit" class="btn-main">Save Recipe</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // PRELOADED MASTER RECIPES
+    const defaultRecipes = [
+      {
+        id: "1",
+        title: "Turkey Taco Stuffed Casserole / Bake",
+        category: "Bake",
+        time: "35 mins",
+        ingredients: [
+          "1 lb lean ground turkey (93/7)",
+          "2 large bell peppers, diced",
+          "1 medium onion, diced",
+          "2-3 cloves minced garlic",
+          "2 tbsp taco seasoning",
+          "1 can (14.5 oz) fire-roasted diced tomatoes, drained",
+          "1 can (15 oz) black beans, rinsed & drained",
+          "1 cup frozen corn kernels",
+          "1.5 cups shredded Mexican blend cheese"
+        ],
+        instructions: [
+          "Preheat oven to 375°F (190°C).",
+          "Sauté diced onions and bell peppers in a skillet with olive oil for 4-5 minutes until tender.",
+          "Add ground turkey and brown thoroughly, draining any extra liquid.",
+          "Stir in taco seasoning, drained tomatoes, black beans, and corn. Simmer for 3 minutes.",
+          "Stir 1/2 cup cheese directly into the mix, then pour into a baking dish (or keep in oven-safe skillet).",
+          "Top with remaining 1 cup cheese and bake for 15-18 minutes until cheese is bubbly and melted."
+        ]
+      },
+      {
+        id: "2",
+        title: "Sheet-Pan Honey Mustard Salmon & Green Beans",
+        category: "Sheet Pan",
+        time: "15 mins",
+        ingredients: [
+          "4 salmon fillets",
+          "1 lb fresh green beans, trimmed",
+          "1 tbsp coarse Dijon mustard",
+          "1 tsp honey",
+          "1 tbsp olive oil",
+          "Juice of 1/2 fresh lemon"
+        ],
+        instructions: [
+          "Preheat oven to 400°F (200°C) and line a sheet pan with foil.",
+          "Whisk Dijon mustard, honey, olive oil, and lemon juice in a small bowl.",
+          "Place salmon and green beans on sheet pan. Brush glaze over salmon and toss beans lightly in olive oil.",
+          "Roast for 12-14 minutes until salmon flakes easily with a fork."
+        ]
+      },
+      {
+        id: "3",
+        title: "Slow-Cooker Salsa Verde Shredded Chicken",
+        category: "Slow Cooker",
+        time: "5-6 hrs on LOW",
+        ingredients: [
+          "1.5 lbs boneless skinless chicken breasts",
+          "1 jar (16 oz) salsa verde",
+          "1 tsp ground cumin",
+          "1 tsp garlic powder",
+          "Juice of 1 lime"
+        ],
+        instructions: [
+          "Place chicken breasts in slow cooker.",
+          "Season with cumin and garlic powder, then pour salsa verde over top.",
+          "Cook on LOW for 5-6 hours (or HIGH for 3 hours).",
+          "Shred chicken directly in crock using two forks and squeeze lime over top before serving."
+        ]
+      },
+      {
+        id: "4",
+        title: "15-Minute Garlic Butter Shrimp & Snap Pea Stir-Fry",
+        category: "Skillet",
+        time: "15 mins",
+        ingredients: [
+          "1 lb peeled & deveined shrimp",
+          "2 cups sugar snap peas",
+          "3 cloves minced garlic",
+          "1 tbsp butter & 1 tbsp olive oil",
+          "1 tbsp low-sodium soy sauce",
+          "Fresh lemon juice"
+        ],
+        instructions: [
+          "Heat olive oil in a skillet over medium-high. Sauté snap peas for 3 minutes until crisp-tender.",
+          "Add shrimp, butter, and minced garlic to pan.",
+          "Sauté for 3-4 minutes until shrimp turn pink and opaque.",
+          "Finish with soy sauce and fresh lemon juice, then remove from heat immediately."
+        ]
+      },
+      {
+        id: "5",
+        title: "15-Minute Garlic Herb Steak Bites & Asparagus",
+        category: "Skillet",
+        time: "15 mins",
+        ingredients: [
+          "1 lb sirloin steak, cut into 1-inch cubes",
+          "1 bunch asparagus, trimmed and cut in halves",
+          "1 tbsp butter",
+          "3 cloves minced garlic",
+          "1 tbsp olive oil",
+          "Salt and cracked black pepper"
+        ],
+        instructions: [
+          "Pat steak dry and season generously with salt and black pepper.",
+          "Heat olive oil in a skillet over high heat until smoking. Sear steak bites for 3-4 minutes until nicely browned; transfer to a plate.",
+          "Drop asparagus into skillet juices and cook for 3 minutes until tender-crisp.",
+          "Return steak to the pan, toss in butter and minced garlic for 1 minute to coat, and serve."
+        ]
+      },
+      {
+        id: "6",
+        title: "Sheet-Pan Chicken Sausage, Baby Potatoes & Brussels Sprouts",
+        category: "Sheet Pan",
+        time: "25 mins",
+        ingredients: [
+          "1 package (12 oz) pre-cooked smoked chicken sausage, sliced into rounds",
+          "1 lb baby gold potatoes, halved",
+          "1 lb Brussels sprouts, trimmed and halved",
+          "2 tbsp olive oil",
+          "1 tsp smoked paprika, salt and pepper"
+        ],
+        instructions: [
+          "Preheat oven to 400°F (200°C).",
+          "Spread halved potatoes and Brussels sprouts on a rimmed sheet pan with olive oil, paprika, salt, and pepper.",
+          "Roast for 10 minutes, then toss in sliced chicken sausage.",
+          "Roast for another 12-14 minutes until potatoes are fork-tender and Brussels sprout edges are crispy."
+        ]
+      },
+      {
+        id: "7",
+        title: "Chicken Caesar Salad",
+        category: "Salad",
+        time: "10 mins",
+        ingredients: [
+          "2 cups cooked shredded chicken breast (or rotisserie)",
+          "2 heads romaine lettuce, chopped",
+          "1/3 cup grated or shaved parmesan cheese",
+          "1/2 cup whole-grain or sourdough croutons",
+          "Caesar dressing",
+          "Fresh cracked black pepper & lemon wedge"
+        ],
+        instructions: [
+          "Wash, dry, and roughly chop romaine lettuce.",
+          "Place lettuce in a large bowl and toss lightly with Caesar dressing.",
+          "Top with warm or chilled shredded chicken, croutons, parmesan, cracked pepper, and a squeeze of fresh lemon."
+        ]
+      },
+      {
+        id: "8",
+        title: "Slow-Cooker Honey Teriyaki Chicken & Broccoli",
+        category: "Slow Cooker",
+        time: "4-5 hrs on LOW",
+        ingredients: [
+          "1.5 lbs chicken breasts",
+          "1/3 cup low-sodium soy sauce",
+          "3 tbsp honey",
+          "2 cloves minced garlic",
+          "1 tsp fresh ginger",
+          "3 cups fresh broccoli florets"
+        ],
+        instructions: [
+          "Place chicken breasts in slow cooker.",
+          "Whisk soy sauce, honey, garlic, and ginger; pour over chicken.",
+          "Cook on LOW for 4-5 hours.",
+          "Shred chicken in the sauce. Steam broccoli and stir in right before serving over rice."
+        ]
+      },
+      {
+        id: "9",
+        title: "Slow-Cooker Lean Beef Barbacoa",
+        category: "Slow Cooker",
+        time: "7-8 hrs on LOW",
+        ingredients: [
+          "2 lbs lean beef roast (chuck trimmed or brisket)",
+          "3 chipotle peppers in adobo sauce, chopped",
+          "1 cup beef broth",
+          "4 cloves minced garlic",
+          "2 tbsp lime juice",
+          "1 tbsp cumin & 1 tsp oregano"
+        ],
+        instructions: [
+          "Place trimmed beef into the slow cooker.",
+          "Blend or whisk chipotle peppers, adobo sauce, broth, garlic, lime juice, and spices; pour over beef.",
+          "Cover and cook on LOW for 7-8 hours until fall-apart tender.",
+          "Shred beef directly in the crock with two forks."
+        ]
+      },
+      {
+        id: "10",
+        title: "Slow-Cooker Chicken Tikka Masala",
+        category: "Slow Cooker",
+        time: "5-6 hrs on LOW",
+        ingredients: [
+          "1.5 lbs chicken breasts, cubed",
+          "1 can (15 oz) tomato sauce",
+          "3 cloves garlic, minced",
+          "1 tbsp garam masala",
+          "1 tsp cumin & 1 tsp turmeric",
+          "1/2 cup plain Greek yogurt or light coconut milk"
+        ],
+        instructions: [
+          "Place cubed chicken, tomato sauce, garlic, and spices in slow cooker.",
+          "Stir well, cover, and cook on LOW for 5-6 hours.",
+          "Turn off heat and stir in Greek yogurt or coconut milk until silky and creamy. Serve over rice."
+        ]
+      },
+      {
+        id: "11",
+        title: "Slow-Cooker Citrus Pork Carnitas",
+        category: "Slow Cooker",
+        time: "7-8 hrs on LOW",
+        ingredients: [
+          "2 lbs boneless pork loin (or trimmed pork roast)",
+          "Juice of 1 orange",
+          "Juice of 1 lime",
+          "1 tsp chili powder, 1 tsp cumin, 1 tsp oregano",
+          "4 cloves minced garlic"
+        ],
+        instructions: [
+          "Place pork into the slow cooker and rub with spices and minced garlic.",
+          "Pour orange and lime juice around the meat.",
+          "Cook on LOW for 7-8 hours until shreddable.",
+          "Optional crisping: Broil shredded meat on a baking sheet for 4-5 minutes until tips caramelize."
+        ]
+      },
+      {
+        id: "12",
+        title: "Slow-Cooker Homestyle Chicken Noodle Soup",
+        category: "Slow Cooker",
+        time: "6 hrs on LOW",
+        ingredients: [
+          "1.5 lbs whole chicken breasts",
+          "1 cup baby carrots, sliced",
+          "3 celery stalks, sliced",
+          "6 cups low-sodium chicken broth",
+          "1 tsp dried thyme",
+          "6 oz wide egg noodles"
+        ],
+        instructions: [
+          "Add chicken breasts, carrots, celery, broth, and thyme to slow cooker.",
+          "Cook on LOW for 6 hours.",
+          "Remove chicken and shred with forks; return to slow cooker.",
+          "Stir in uncooked egg noodles and cook for 20 minutes until noodles are tender."
+        ]
+      }
+    ];
+
+    // LOCAL STORAGE HANDLING
+    let recipes = JSON.parse(localStorage.getItem("dinner_recipes_db")) || defaultRecipes;
+    function saveRecipesToStorage() {
+      localStorage.setItem("dinner_recipes_db", JSON.stringify(recipes));
+      renderLibrary();
+    }
+
+    let activeFilter = "all";
+    let currentWinner = null;
+
+    function setFilter(cat, elem) {
+      activeFilter = cat;
+      document.querySelectorAll(".filter-scroll .chip").forEach(c => c.classList.remove("active"));
+      elem.classList.add("active");
+    }
+
+    function spinDinner() {
+      let pool = activeFilter === "all" ? recipes : recipes.filter(r => r.category === activeFilter);
+      if (!pool.length) {
+        alert("No recipes match this filter!");
+        return;
+      }
+
+      const titleEl = document.getElementById("card-title");
+      const metaEl = document.getElementById("card-meta");
+      const tagEl = document.getElementById("card-tag");
+      const btnView = document.getElementById("btn-view-recipe");
+
+      let count = 0;
+      const interval = setInterval(() => {
+        const rand = pool[Math.floor(Math.random() * pool.length)];
+        titleEl.textContent = rand.title;
+        tagEl.textContent = rand.category;
+        count++;
+        if (count > 12) {
+          clearInterval(interval);
+          currentWinner = pool[Math.floor(Math.random() * pool.length)];
+          titleEl.textContent = currentWinner.title;
+          tagEl.textContent = currentWinner.category;
+          metaEl.textContent = "⏱️ " + currentWinner.time;
+          btnView.style.display = "block";
+        }
+      }, 75);
+    }
+
+    function viewCurrentWinner() {
+      if (currentWinner) openDetailModal(currentWinner.id);
+    }
+
+    function renderLibrary() {
+      const container = document.getElementById("recipe-list-container");
+      container.innerHTML = "";
+
+      recipes.forEach(r => {
+        const item = document.createElement("div");
+        item.className = "recipe-item";
+        item.innerHTML = `
+          <div style="flex:1;" onclick="openDetailModal('${r.id}')">
+            <span class="tag-badge" style="margin-bottom:4px;">${r.category}</span>
+            <h3>${r.title}</h3>
+            <p>⏱️ ${r.time} • ${r.ingredients.length} ingredients</p>
+          </div>
+          <div class="item-actions">
+            <button class="icon-btn" onclick="openEditModal('${r.id}')">✏️</button>
+            <button class="icon-btn" onclick="deleteRecipe('${r.id}')">🗑️</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function openDetailModal(id) {
+      const r = recipes.find(x => x.id === id);
+      if (!r) return;
+
+      document.getElementById("modal-tag").textContent = r.category;
+      document.getElementById("modal-title").textContent = r.title;
+      document.getElementById("modal-time").textContent = "⏱️ Cook Time: " + r.time;
+
+      let html = `<h4>🛒 Ingredients (Tap to check off)</h4>`;
+      r.ingredients.forEach((ing, i) => {
+        html += `
+          <label class="check-item">
+            <input type="checkbox" />
+            <span>${ing}</span>
+          </label>
+        `;
+      });
+
+      html += `<h4 style="margin-top:20px;">🍳 Step-by-Step Instructions</h4>`;
+      r.instructions.forEach((step, i) => {
+        html += `
+          <div class="instruction-step">
+            <div class="step-num">${i + 1}</div>
+            <div>${step}</div>
+          </div>
+        `;
+      });
+
+      document.getElementById("modal-content").innerHTML = html;
+      document.getElementById("detail-modal").classList.add("open");
+    }
+
+    function openAddModal() {
+      document.getElementById("form-header-title").textContent = "Add New Recipe";
+      document.getElementById("recipe-form").reset();
+      document.getElementById("edit-id").value = "";
+      document.getElementById("edit-modal").classList.add("open");
+    }
+
+    function openEditModal(id) {
+      const r = recipes.find(x => x.id === id);
+      if (!r) return;
+
+      document.getElementById("form-header-title").textContent = "Edit Recipe";
+      document.getElementById("edit-id").value = r.id;
+      document.getElementById("form-title").value = r.title;
+      document.getElementById("form-category").value = r.category;
+      document.getElementById("form-time").value = r.time;
+      document.getElementById("form-ingredients").value = r.ingredients.join("\n");
+      document.getElementById("form-instructions").value = r.instructions.join("\n");
+
+      document.getElementById("edit-modal").classList.add("open");
+    }
+
+    function saveRecipeForm(e) {
+      e.preventDefault();
+      const id = document.getElementById("edit-id").value;
+      const title = document.getElementById("form-title").value.trim();
+      const category = document.getElementById("form-category").value;
+      const time = document.getElementById("form-time").value.trim() || "Quick";
+      const ings = document.getElementById("form-ingredients").value.split("\n").map(s => s.trim()).filter(Boolean);
+      const insts = document.getElementById("form-instructions").value.split("\n").map(s => s.trim()).filter(Boolean);
+
+      if (id) {
+        const index = recipes.findIndex(x => x.id === id);
+        if (index !== -1) recipes[index] = { id, title, category, time, ingredients: ings, instructions: insts };
+      } else {
+        recipes.push({
+          id: Date.now().toString(),
+          title,
+          category,
+          time,
+          ingredients: ings,
+          instructions: insts
+        });
+      }
+
+      saveRecipesToStorage();
+      closeModal("edit-modal");
+    }
+
+    function deleteRecipe(id) {
+      if (confirm("Are you sure you want to delete this recipe?")) {
+        recipes = recipes.filter(r => r.id !== id);
+        saveRecipesToStorage();
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+    }
+
+    function closeOnOutside(e, id) {
+      if (e.target.id === id) closeModal(id);
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById(tabId).classList.add("active");
+      btn.classList.add("active");
+    }
+
+    // Initialize list
+    renderLibrary();
+  </script>
+</body>
+</html>
